@@ -38,27 +38,6 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
 
-        .step-circle {
-            width: 2rem;
-            height: 2rem;
-            border-radius: 9999px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            z-index: 10;
-        }
-
-        .connector-line {
-            position: absolute;
-            top: 1rem;
-            left: 2rem;
-            right: -2rem;
-            height: 2px;
-            background-color: #d6d3d1;
-            z-index: 0;
-        }
-
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -70,6 +49,27 @@
             user-select: none;
             cursor: pointer;
             min-width: 4rem;
+        }
+
+        .flow-arrow-h { display: none; }
+        .flow-arrow-v { display: flex; }
+        @media (min-width: 768px) {
+            .flow-arrow-h { display: flex; }
+            .flow-arrow-v { display: none; }
+        }
+
+        .schema-table th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            border-bottom: 2px solid #d6d3d1;
+        }
+        .schema-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e7e5e4;
+        }
+        .schema-table tr:last-child td {
+            border-bottom: none;
         }
     </style>
 </head>
@@ -83,10 +83,11 @@
                 <h1 class="text-xl font-bold text-stone-800" data-i18n="header.title"></h1>
             </div>
             <div class="flex items-center space-x-4">
-                <nav class="hidden md:flex space-x-6">
+                <nav class="hidden md:flex space-x-5">
                     <button onclick="scrollToSection('simulator')" class="text-sm font-medium text-stone-500 hover:text-teal-600 transition-colors" data-i18n="nav.simulator"></button>
                     <button onclick="scrollToSection('data-source')" class="text-sm font-medium text-stone-500 hover:text-teal-600 transition-colors" data-i18n="nav.datasource"></button>
                     <button onclick="scrollToSection('edge-cases')" class="text-sm font-medium text-stone-500 hover:text-teal-600 transition-colors" data-i18n="nav.edgecases"></button>
+                    <button onclick="scrollToSection('reward-flow')" class="text-sm font-medium text-stone-500 hover:text-teal-600 transition-colors" data-i18n="nav.rewardflow"></button>
                     <button onclick="scrollToSection('dashboard')" class="text-sm font-medium text-stone-500 hover:text-teal-600 transition-colors" data-i18n="nav.dashboard"></button>
                 </nav>
                 <button onclick="toggleLang()" id="lang-toggle" class="px-3 py-1.5 text-sm font-semibold rounded-full border-2 border-stone-300 text-stone-600 hover:border-teal-400 hover:text-teal-700 hover:bg-teal-50 transition-all-ease">
@@ -115,8 +116,8 @@
                 <div class="absolute top-0 right-0 w-64 h-64 bg-teal-50 rounded-full mix-blend-multiply filter blur-3xl opacity-50 transform translate-x-1/2 -translate-y-1/2"></div>
 
                 <!-- Controls -->
-                <div class="lg:col-span-2 space-y-8 relative z-10">
-                    
+                <div class="lg:col-span-2 space-y-6 relative z-10">
+
                     <!-- Role Selection -->
                     <div class="space-y-3">
                         <label class="block text-sm font-semibold text-stone-700 uppercase tracking-wider" data-i18n="sim.label1"></label>
@@ -136,7 +137,7 @@
                         </div>
                     </div>
 
-                    <!-- Action 1: Download -->
+                    <!-- Download -->
                     <div class="space-y-3">
                         <label class="block text-sm font-semibold text-stone-700 uppercase tracking-wider" data-i18n="sim.label2"></label>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -145,7 +146,7 @@
                         </div>
                     </div>
 
-                    <!-- Action 2: Activation -->
+                    <!-- Activation -->
                     <div class="space-y-3">
                         <label class="block text-sm font-semibold text-stone-700 uppercase tracking-wider" data-i18n="sim.label3"></label>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -153,10 +154,19 @@
                             <button onclick="simSelect('activate', 'no')" id="btn-activate-no" class="sim-btn act-btn px-4 py-3 rounded-xl border-2 border-stone-200 text-stone-600 font-medium hover:border-stone-400 hover:text-stone-700 transition-all-ease text-center" data-i18n="sim.btn.act.no"></button>
                         </div>
                     </div>
+
+                    <!-- Registration (NEW) -->
+                    <div class="space-y-3">
+                        <label class="block text-sm font-semibold text-stone-700 uppercase tracking-wider" data-i18n="sim.label4"></label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button onclick="simSelect('register', 'yes')" id="btn-register-yes" class="sim-btn reg-btn px-4 py-3 rounded-xl border-2 border-stone-200 text-stone-600 font-medium hover:border-teal-400 hover:text-teal-700 transition-all-ease text-center" data-i18n="sim.btn.reg.yes"></button>
+                            <button onclick="simSelect('register', 'no')" id="btn-register-no" class="sim-btn reg-btn px-4 py-3 rounded-xl border-2 border-stone-200 text-stone-600 font-medium hover:border-stone-400 hover:text-stone-700 transition-all-ease text-center" data-i18n="sim.btn.reg.no"></button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Result Display -->
-                <div class="bg-stone-100 rounded-xl p-6 flex flex-col justify-center items-center text-center border border-stone-200 relative z-10 min-h-[250px]" id="sim-result-box">
+                <div class="bg-stone-100 rounded-xl p-6 flex flex-col justify-center items-center text-center border border-stone-200 relative z-10 min-h-[280px]" id="sim-result-box">
                     <div class="text-4xl mb-4" id="sim-icon">⏳</div>
                     <h4 class="text-xl font-bold text-stone-800 mb-2" id="sim-title"></h4>
                     <p class="text-sm text-stone-500" id="sim-desc"></p>
@@ -171,51 +181,79 @@
                 <p class="text-stone-600 mt-2" data-i18n="ds.desc"></p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Source 1 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Card 1: Download Attribution -->
                 <div class="glass-card p-6 rounded-2xl group hover:-translate-y-1 transition-all-ease">
                     <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-2xl mb-4">📥</div>
                     <h4 class="text-lg font-bold text-stone-800 mb-2" data-i18n="ds.card1.title"></h4>
                     <ul class="space-y-3 mt-4">
                         <li class="flex items-start">
-                            <span class="text-green-500 mr-2 mt-0.5">➔</span>
+                            <span class="text-green-500 mr-2 mt-0.5 shrink-0">➔</span>
                             <span class="text-sm text-stone-600" data-i18n-html="ds.card1.item1"></span>
                         </li>
                         <li class="flex items-start">
-                            <span class="text-green-500 mr-2 mt-0.5">➔</span>
+                            <span class="text-green-500 mr-2 mt-0.5 shrink-0">➔</span>
                             <span class="text-sm text-stone-600" data-i18n-html="ds.card1.item2"></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-2 mt-0.5 shrink-0">➔</span>
+                            <span class="text-sm text-stone-600" data-i18n-html="ds.card1.item3"></span>
                         </li>
                     </ul>
                 </div>
 
-                <!-- Source 2 -->
+                <!-- Card 2: Activation Attribution -->
                 <div class="glass-card p-6 rounded-2xl group hover:-translate-y-1 transition-all-ease">
                     <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-2xl mb-4">🚀</div>
                     <h4 class="text-lg font-bold text-stone-800 mb-2" data-i18n="ds.card2.title"></h4>
                     <ul class="space-y-3 mt-4">
                         <li class="flex items-start">
-                            <span class="text-green-500 mr-2 mt-0.5">➔</span>
+                            <span class="text-green-500 mr-2 mt-0.5 shrink-0">➔</span>
                             <span class="text-sm text-stone-600" data-i18n-html="ds.card2.item1"></span>
                         </li>
                         <li class="flex items-start">
-                            <span class="text-green-500 mr-2 mt-0.5">➔</span>
+                            <span class="text-green-500 mr-2 mt-0.5 shrink-0">➔</span>
                             <span class="text-sm text-stone-600" data-i18n-html="ds.card2.item2"></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-2 mt-0.5 shrink-0">➔</span>
+                            <span class="text-sm text-stone-600" data-i18n-html="ds.card2.item3"></span>
                         </li>
                     </ul>
                 </div>
 
-                <!-- Source 3 -->
+                <!-- Card 3: Registration Attribution (NEW) -->
                 <div class="glass-card p-6 rounded-2xl group hover:-translate-y-1 transition-all-ease">
-                    <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center text-2xl mb-4">👤</div>
+                    <div class="w-12 h-12 bg-teal-100 text-teal-600 rounded-lg flex items-center justify-center text-2xl mb-4">📝</div>
                     <h4 class="text-lg font-bold text-stone-800 mb-2" data-i18n="ds.card3.title"></h4>
                     <ul class="space-y-3 mt-4">
                         <li class="flex items-start">
-                            <span class="text-green-500 mr-2 mt-0.5">➔</span>
+                            <span class="text-green-500 mr-2 mt-0.5 shrink-0">➔</span>
                             <span class="text-sm text-stone-600" data-i18n-html="ds.card3.item1"></span>
                         </li>
                         <li class="flex items-start">
-                            <span class="text-green-500 mr-2 mt-0.5">➔</span>
+                            <span class="text-green-500 mr-2 mt-0.5 shrink-0">➔</span>
                             <span class="text-sm text-stone-600" data-i18n-html="ds.card3.item2"></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-2 mt-0.5 shrink-0">➔</span>
+                            <span class="text-sm text-stone-600" data-i18n-html="ds.card3.item3"></span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Card 4: User Identity (UPP) -->
+                <div class="glass-card p-6 rounded-2xl group hover:-translate-y-1 transition-all-ease">
+                    <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center text-2xl mb-4">👤</div>
+                    <h4 class="text-lg font-bold text-stone-800 mb-2" data-i18n="ds.card4.title"></h4>
+                    <ul class="space-y-3 mt-4">
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-2 mt-0.5 shrink-0">➔</span>
+                            <span class="text-sm text-stone-600" data-i18n-html="ds.card4.item1"></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-green-500 mr-2 mt-0.5 shrink-0">➔</span>
+                            <span class="text-sm text-stone-600" data-i18n-html="ds.card4.item2"></span>
                         </li>
                     </ul>
                 </div>
@@ -239,12 +277,12 @@
 
                 <!-- Content Area -->
                 <div class="w-full md:w-2/3 p-6 md:p-8 bg-white min-h-[300px] relative">
-                    
-                    <!-- Case 1 -->
+
+                    <!-- Case 1: Cross-day -->
                     <div id="content-case1" class="edge-case-content block animation-fade">
                         <h4 class="text-xl font-bold text-stone-800 mb-2" data-i18n="ec.case1.title"></h4>
                         <p class="text-sm text-stone-600 mb-6 bg-amber-50 border border-amber-200 p-3 rounded-lg" data-i18n-html="ec.case1.rule"></p>
-                        
+
                         <div class="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-stone-300 before:to-transparent">
                             <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                                 <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-stone-200 text-stone-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">📅</div>
@@ -270,26 +308,26 @@
                         </div>
                     </div>
 
-                    <!-- Case 2 -->
+                    <!-- Case 2: Last Click Wins -->
                     <div id="content-case2" class="edge-case-content hidden animation-fade">
                         <h4 class="text-xl font-bold text-stone-800 mb-2" data-i18n="ec.case2.title"></h4>
                         <p class="text-sm text-stone-600 mb-6 bg-blue-50 border border-blue-200 p-3 rounded-lg" data-i18n-html="ec.case2.rule"></p>
-                        
+
                         <div class="space-y-4">
                             <div class="flex items-center p-3 bg-stone-50 rounded-lg border border-stone-200">
-                                <div class="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center mr-3">1</div>
+                                <div class="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center mr-3 shrink-0">1</div>
                                 <div data-i18n-html="ec.case2.step1"></div>
                             </div>
                             <div class="flex items-center p-3 bg-stone-50 rounded-lg border border-stone-200">
-                                <div class="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center mr-3">2</div>
+                                <div class="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center mr-3 shrink-0">2</div>
                                 <div data-i18n-html="ec.case2.step2"></div>
                             </div>
                             <div class="flex items-center p-3 bg-stone-50 rounded-lg border border-stone-200">
-                                <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center mr-3">3</div>
+                                <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center mr-3 shrink-0">3</div>
                                 <div data-i18n-html="ec.case2.step3"></div>
                             </div>
                             <div class="flex items-center p-3 bg-stone-50 rounded-lg border border-stone-200">
-                                <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center mr-3">4</div>
+                                <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center mr-3 shrink-0">4</div>
                                 <div data-i18n-html="ec.case2.step4"></div>
                             </div>
                             <div class="mt-4 p-4 bg-green-50 rounded-xl border border-green-200 flex items-start">
@@ -302,21 +340,21 @@
                         </div>
                     </div>
 
-                    <!-- Case 3 -->
+                    <!-- Case 3: Indirect Path (UPDATED for 3-path) -->
                     <div id="content-case3" class="edge-case-content hidden animation-fade">
                         <h4 class="text-xl font-bold text-stone-800 mb-2" data-i18n="ec.case3.title"></h4>
                         <p class="text-sm text-stone-600 mb-6 bg-teal-50 border border-teal-200 p-3 rounded-lg" data-i18n-html="ec.case3.rule"></p>
-                        
+
                         <div class="grid grid-cols-1 gap-4">
                             <div class="border border-stone-200 rounded-xl p-4">
                                 <h5 class="text-xs font-bold text-stone-400 uppercase tracking-wider mb-3" data-i18n="ec.case3.track1.title"></h5>
                                 <div class="flex flex-col space-y-2">
-                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2">🔗</span> <span data-i18n="ec.case3.track1.s1"></span></div>
-                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2">📱</span> <span data-i18n="ec.case3.track1.s2"></span></div>
-                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2">🔗</span> <span data-i18n="ec.case3.track1.s3"></span></div>
+                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2 shrink-0">🔗</span> <span data-i18n="ec.case3.track1.s1"></span></div>
+                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2 shrink-0">📱</span> <span data-i18n="ec.case3.track1.s2"></span></div>
+                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2 shrink-0">🔗</span> <span data-i18n="ec.case3.track1.s3"></span></div>
                                 </div>
                             </div>
-                            
+
                             <div class="flex justify-center -my-3 z-10 relative">
                                 <div class="bg-white px-2 text-stone-400" data-i18n="ec.case3.divider"></div>
                             </div>
@@ -324,9 +362,11 @@
                             <div class="border border-teal-200 bg-teal-50 rounded-xl p-4">
                                 <h5 class="text-xs font-bold text-teal-600 uppercase tracking-wider mb-3" data-i18n="ec.case3.track2.title"></h5>
                                 <div class="flex flex-col space-y-2">
-                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2">✅</span> <span data-i18n="ec.case3.track2.s1"></span></div>
-                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2">✅</span> <span data-i18n="ec.case3.track2.s2"></span></div>
-                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2">💡</span> <span data-i18n="ec.case3.track2.s3"></span></div>
+                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2 shrink-0">✅</span> <span data-i18n="ec.case3.track2.s1"></span></div>
+                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2 shrink-0">✅</span> <span data-i18n="ec.case3.track2.s2"></span></div>
+                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2 shrink-0">❌</span> <span data-i18n="ec.case3.track2.s3"></span></div>
+                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2 shrink-0">❌</span> <span data-i18n="ec.case3.track2.s4"></span></div>
+                                    <div class="flex items-center text-sm"><span class="w-6 text-center mr-2 shrink-0">💡</span> <span data-i18n="ec.case3.track2.s5"></span></div>
                                 </div>
                             </div>
 
@@ -338,7 +378,98 @@
             </div>
         </section>
 
-        <!-- Section 4: Dashboard -->
+        <!-- Section 4: Reward Flow (NEW) -->
+        <section id="reward-flow" class="scroll-mt-24">
+            <div class="mb-6">
+                <h3 class="text-2xl font-bold text-stone-800 flex items-center"><span class="mr-2">🎁</span> <span data-i18n="rf.title"></span></h3>
+                <p class="text-stone-600 mt-2" data-i18n="rf.desc"></p>
+            </div>
+
+            <!-- Flow Steps -->
+            <div class="glass-card rounded-2xl p-6 md:p-8">
+                <div class="flex flex-col md:flex-row items-stretch gap-3 md:gap-2">
+                    <!-- Step 1 -->
+                    <div class="flex-1 text-center p-4 bg-green-50 rounded-xl border border-green-200">
+                        <div class="text-3xl mb-2">✅</div>
+                        <div class="font-bold text-green-800 text-sm" data-i18n="rf.step1.title"></div>
+                        <div class="text-xs text-green-700 mt-1" data-i18n="rf.step1.desc"></div>
+                    </div>
+                    <div class="flow-arrow-h items-center text-stone-300 text-2xl font-light px-1">→</div>
+                    <div class="flow-arrow-v justify-center text-stone-300 text-2xl font-light py-0">↓</div>
+                    <!-- Step 2 -->
+                    <div class="flex-1 text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
+                        <div class="text-3xl mb-2">💾</div>
+                        <div class="font-bold text-blue-800 text-sm" data-i18n="rf.step2.title"></div>
+                        <div class="text-xs text-blue-700 mt-1" data-i18n="rf.step2.desc"></div>
+                    </div>
+                    <div class="flow-arrow-h items-center text-stone-300 text-2xl font-light px-1">→</div>
+                    <div class="flow-arrow-v justify-center text-stone-300 text-2xl font-light py-0">↓</div>
+                    <!-- Step 3 -->
+                    <div class="flex-1 text-center p-4 bg-purple-50 rounded-xl border border-purple-200">
+                        <div class="text-3xl mb-2">🎮</div>
+                        <div class="font-bold text-purple-800 text-sm" data-i18n="rf.step3.title"></div>
+                        <div class="text-xs text-purple-700 mt-1" data-i18n="rf.step3.desc"></div>
+                    </div>
+                    <div class="flow-arrow-h items-center text-stone-300 text-2xl font-light px-1">→</div>
+                    <div class="flow-arrow-v justify-center text-stone-300 text-2xl font-light py-0">↓</div>
+                    <!-- Step 4 -->
+                    <div class="flex-1 text-center p-4 bg-amber-50 rounded-xl border border-amber-200">
+                        <div class="text-3xl mb-2">🔍</div>
+                        <div class="font-bold text-amber-800 text-sm" data-i18n="rf.step4.title"></div>
+                        <div class="text-xs text-amber-700 mt-1" data-i18n="rf.step4.desc"></div>
+                    </div>
+                    <div class="flow-arrow-h items-center text-stone-300 text-2xl font-light px-1">→</div>
+                    <div class="flow-arrow-v justify-center text-stone-300 text-2xl font-light py-0">↓</div>
+                    <!-- Step 5 -->
+                    <div class="flex-1 text-center p-4 bg-teal-50 rounded-xl border border-teal-200">
+                        <div class="text-3xl mb-2">🏆</div>
+                        <div class="font-bold text-teal-800 text-sm" data-i18n="rf.step5.title"></div>
+                        <div class="text-xs text-teal-700 mt-1" data-i18n="rf.step5.desc"></div>
+                    </div>
+                </div>
+
+                <!-- Key Rules Callout -->
+                <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start">
+                    <span class="text-xl mr-3 mt-0.5">⚠️</span>
+                    <div class="text-sm text-amber-800" data-i18n-html="rf.callout"></div>
+                </div>
+            </div>
+
+            <!-- Attribution Record Schema -->
+            <div class="glass-card rounded-2xl p-6 mt-6">
+                <h4 class="font-bold text-stone-700 mb-4" data-i18n="rf.schema.title"></h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm schema-table">
+                        <thead class="bg-stone-50">
+                            <tr>
+                                <th class="text-stone-600" data-i18n="rf.schema.field"></th>
+                                <th class="text-stone-600" data-i18n="rf.schema.descheader"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="font-mono text-teal-700">User UID</td>
+                                <td class="text-stone-600" data-i18n="rf.schema.uid.desc"></td>
+                            </tr>
+                            <tr>
+                                <td class="font-mono text-teal-700">Attribution Type</td>
+                                <td class="text-stone-600" data-i18n="rf.schema.type.desc"></td>
+                            </tr>
+                            <tr>
+                                <td class="font-mono text-teal-700">Referrer UID</td>
+                                <td class="text-stone-600" data-i18n="rf.schema.referrer.desc"></td>
+                            </tr>
+                            <tr>
+                                <td class="font-mono text-teal-700">Attribution Status</td>
+                                <td class="text-stone-600" data-i18n="rf.schema.status.desc"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Dashboard -->
         <section id="dashboard" class="scroll-mt-24">
             <div class="mb-6">
                 <h3 class="text-2xl font-bold text-stone-800 flex items-center"><span class="mr-2">📊</span> <span data-i18n="dash.title"></span></h3>
@@ -380,54 +511,66 @@
                 'nav.simulator': '归因模拟器',
                 'nav.datasource': '数据溯源',
                 'nav.edgecases': '边界场景',
+                'nav.rewardflow': '奖励发放',
                 'nav.dashboard': '数据看板',
 
                 'intro.title': '解密用户邀请归因 (Referral Attribution)',
-                'intro.desc': '本看板将复杂的 Referral 归因逻辑拆解为可交互的模块。整个逻辑主要围绕 <strong>用户身份判定</strong> 和 <strong>动作溯源（下载/激活）</strong> 展开。在这里，您可以自由组合条件测试归因结果，探索底层数据验证机制，并深入了解特殊边界场景的判定规则。',
+                'intro.desc': '本看板将复杂的 Referral 归因逻辑拆解为可交互的模块。整个逻辑围绕 <strong>用户身份判定</strong> 和 <strong>动作溯源（下载 / 激活 / 注册）</strong> 展开，采用三路 OR 逻辑。归因成功后，奖励通过<strong>持久化机制</strong>保障发放，用户无需当天进入游戏即可在后续首次登录时领取。',
 
                 'sim.title': '核心归因模拟器',
-                'sim.desc': '通过下方控制面板，模拟用户在<b>同一天内</b>的行为。系统采用 <strong>OR 逻辑</strong>：下载归因和激活归因，只要满足任意一个即可算作成功。请点击选项查看结果。',
-                'sim.label1': '1. 判断用户当日身份 (进入落地页时)',
+                'sim.desc': '模拟用户在<b>同一天内</b>的行为路径。系统采用 <strong>三路 OR 逻辑</strong>：下载归因、激活归因、注册归因，只要满足任意一个即可算作成功。请依次选择各项条件查看结果。',
+                'sim.label1': '1. 判断用户当日身份 (通过 UPP 校验)',
                 'sim.btn.new.desc': '当日新注册用户',
                 'sim.btn.ra.desc': '当日唤醒用户',
                 'sim.btn.other.desc': '不满足上述条件',
-                'sim.label2': '2. 当日首次下载 App 来源',
-                'sim.btn.dl.yes': '🔗 属于 Referral 链接带来的',
+                'sim.label2': '2. 当日下载 App 来源 (MMP 归因)',
+                'sim.btn.dl.yes': '🔗 通过 Referral 链接下载',
                 'sim.btn.dl.no': '📱 自然下载或其他渠道',
-                'sim.label3': '3. 当日首次激活 App 来源',
-                'sim.btn.act.yes': '🔗 属于 Referral 链接带来的',
+                'sim.label3': '3. 当日首次激活 App 来源 (utm 溯源)',
+                'sim.btn.act.yes': '🔗 通过 Referral 链接打开',
                 'sim.btn.act.no': '👆 直接点图标打开或其他',
+                'sim.label4': '4. 当日注册账号来源 (Deeplink 时序校验)',
+                'sim.btn.reg.yes': '🔗 通过 Referral Deeplink 唤起注册',
+                'sim.btn.reg.no': '📝 自然注册（直接打开 App 注册）',
 
                 'sim.result.waiting.title': '等待输入...',
                 'sim.result.waiting.desc': '请在左侧完成所有条件的勾选，以查看最终系统归因判定结果。',
                 'sim.result.fail.other.title': '归因失败 (Other User)',
-                'sim.result.fail.other.desc': '用户不满足当天的 New User 或 Reactivated User 条件，因此无论下载和激活来源如何，都不能成功归因。',
-                'sim.result.fail.action.title': '🚫 归因失败 (动作未满足)',
-                'sim.result.fail.action.desc': '虽然用户身份符合，但当日首次下载和首次激活均未能溯源到 Referral 链接。',
+                'sim.result.fail.other.desc': '用户不满足当天的 New User 或 Reactivated User 条件（UPP 校验未通过），因此无论下载、激活和注册来源如何，都不能成功归因。',
+                'sim.result.fail.action.title': '🚫 归因失败 (三路均未满足)',
+                'sim.result.fail.action.desc': '虽然用户身份符合，但当日下载、激活和注册均未能溯源到 Referral 链接，三路 OR 条件无一满足。',
                 'sim.result.success.role.new': '新用户 (New)',
                 'sim.result.success.role.ra': '唤醒用户 (RA)',
                 'sim.result.success.prefix': '✅ 成功归因作为 ',
-                'sim.result.success.both': '完美路径！用户满足当日身份，且下载和激活均通过 Referral 溯源成功。',
-                'sim.result.success.dl': '归因成功！用户满足当日身份，虽然激活未通过链接，但底层 MMS 记录了其当日首次下载来自 Referral (OR 逻辑生效)。',
-                'sim.result.success.act': '归因成功！用户满足当日身份，虽然自然下载，但 Traffic Kafka 记录其当日首次打开 App 是通过 Referral 链接 (OR 逻辑生效)。',
+                'sim.result.success.all': '完美路径！用户满足当日身份，且下载、激活和注册三路均通过 Referral 溯源成功。',
+                'sim.result.success.dl': '归因成功！用户满足当日身份，MMP 记录其当日下载来自 Referral 链接 (OR 逻辑生效)。',
+                'sim.result.success.act': '归因成功！用户满足当日身份，utm 记录其当日首次激活来自 Referral 链接 (OR 逻辑生效)。',
+                'sim.result.success.reg': '归因成功！用户满足当日身份，注册行为通过 Deeplink 时序校验确认来自 Referral (OR 逻辑生效)。',
+                'sim.result.success.multi': '归因成功！用户满足当日身份，多条归因路径验证通过，OR 逻辑生效。',
 
-                'ds.title': '数据溯源：系统是怎么知道的？',
-                'ds.desc': '为了精准判定用户的行为轨迹，系统依赖底层不同的数据通道和标签进行交叉验证。悬浮或点击下方卡片查看具体机制。',
-                'ds.card1.title': '1. 判定当日首次下载',
-                'ds.card1.item1': '在分享链接上带 <strong>Affiliate MMS</strong> 相关上报参数。',
-                'ds.card1.item2': '从 <strong>MMS Kafka 集群</strong> 获取用户归因结果，如果有则说明用户当天下载 App 是 referral 带来的。',
-                'ds.card2.title': '2. 判定当日首次激活',
-                'ds.card2.item1': '在分享链接上报 <strong>utm</strong> 相关参数。',
-                'ds.card2.item2': '从 <strong>traffic 表的 Kafka</strong> 获取用户 App 打开记录，如果首次打开是 referral 链接，则判定成功。',
-                'ds.card3.title': '3. 判定用户身份',
-                'ds.card3.item1': '<strong>新用户 (New)：</strong>从 Tag 获取，条件为 <code>Days since shopee registration = 0 (tag id 23)</code>。',
-                'ds.card3.item2': '<strong>RA用户：</strong>具体唤醒规则标签判定（待业务进一步确认）。',
+                'ds.title': '数据溯源：三路归因的底层实现',
+                'ds.desc': '系统通过三条独立的数据通道判定用户行为是否由 Referral 驱动，每条通道各自校验后均需通过 UPP 确认用户身份。',
+                'ds.card1.title': '路径 1：下载归因 (MMP)',
+                'ds.card1.item1': '分享链接携带 <strong>MMP (Mobile Measurement Partner)</strong> 追踪参数。',
+                'ds.card1.item2': '用户通过链接下载 App 后注册，<strong>MMP 上报并关联 userid</strong>。',
+                'ds.card1.item3': 'Games 通过 userid 获取 MMP 归因数据，再经 <strong>UPP 校验</strong>确认为当日新用户/RA 用户。',
+                'ds.card2.title': '路径 2：激活归因 (utm)',
+                'ds.card2.item1': '分享链接携带 <strong>utm</strong> 参数并进行 utm 上报。',
+                'ds.card2.item2': 'Games 监听 <strong>signup 消息</strong>，通过 userid 关联 deviceid，查询该 deviceid 当日最早 utm 来源。',
+                'ds.card2.item3': '若来源为 Referral，经 <strong>UPP 校验</strong>确认为当日新用户/RA 用户，则归因成功。',
+                'ds.card3.title': '路径 3：注册归因 (Deeplink)',
+                'ds.card3.item1': '用户通过 <strong>Deeplink</strong> 唤起 App 进入游戏，游戏弹出登录/注册面板。',
+                'ds.card3.item2': '用户完成注册后返回游戏，游戏比较 <strong>当日首次注册时间</strong> 与进入游戏页面时间。',
+                'ds.card3.item3': '若注册时间晚于页面进入时间（即由 Deeplink 触发），经 <strong>UPP 校验</strong>确认身份后归因成功。',
+                'ds.card4.title': '身份校验 (UPP)',
+                'ds.card4.item1': '<strong>新用户 (New)：</strong>从 Tag 获取，条件为 <code>Days since Shopee registration = 0 (tag id 23)</code>。',
+                'ds.card4.item2': '<strong>RA 用户：</strong>具体唤醒规则标签判定（待业务进一步确认）。',
 
                 'ec.title': '边界场景 (Edge Cases) 深度解析',
                 'ec.desc': '在实际业务中，用户的行为路径往往不是一条直线。点击下方标签，探索典型的边界判定规则和时间线。',
                 'ec.tab1': '场景 1：归因窗口期失效 (跨日)',
                 'ec.tab2': '场景 2："最后点击有效" (截胡)',
-                'ec.tab3': '场景 3：迂回路径 (同日多次行为)',
+                'ec.tab3': '场景 3：迂回路径 (三路 OR 验证)',
 
                 'ec.case1.title': '归因窗口期失效（跨日场景）',
                 'ec.case1.rule': '<strong>核心规则：</strong>身份判定严格按自然日。跨日后标签失效。',
@@ -436,7 +579,7 @@
                 'ec.case1.step2.title': '今天',
                 'ec.case1.step2.desc': '用户首次通过 App 打开活动落地页。',
                 'ec.case1.result.title': '判定结果：失败',
-                'ec.case1.result.desc': '因为进入落地页时是"今天"，而注册发生于"昨天"，不满足"当日"新用户的条件。',
+                'ec.case1.result.desc': '因为进入落地页时是"今天"，而注册发生于"昨天"，UPP 校验不满足"当日"新用户的条件。',
 
                 'ec.case2.title': '"最后点击有效"原则（Referrer 截胡）',
                 'ec.case2.rule': '<strong>核心规则：</strong>如果用户涉及多个邀请人链接，奖励归属于最终进入落地页的那个链接所有者。',
@@ -447,28 +590,51 @@
                 'ec.case2.result.title': '系统判定：截胡成功',
                 'ec.case2.result.desc': '系统认定为新用户，并发放邀请奖励给 <strong>邀请人 B</strong>，因为其链接触发了最终的归因校验动作。',
 
-                'ec.case3.title': '迂回路径（同日自我打断恢复）',
-                'ec.case3.rule': '<strong>核心规则：</strong>只要关键节点（身份、下载溯源）发生在<strong>同一天</strong>内，即使中间步骤断开，依然算作归因成功。',
+                'ec.case3.title': '迂回路径（同日三路 OR 验证）',
+                'ec.case3.rule': '<strong>核心规则：</strong>三条归因路径（下载 / 激活 / 注册）独立校验，只要任意一条满足 + 当日身份通过 UPP，即算归因成功。',
                 'ec.case3.track1.title': '👤 用户的真实动作',
                 'ec.case3.track1.s1': '点击 Referral 链接下载 App',
                 'ec.case3.track1.s2': '直接点击桌面图标打开并注册 (非链接激活)',
-                'ec.case3.track1.s3': '再次点击 Referral 链接进落地页',
-                'ec.case3.divider': '系统视角的拆解',
+                'ec.case3.track1.s3': '再次点击 Referral 链接进入游戏落地页',
+                'ec.case3.divider': '系统视角的拆解 (三路校验)',
                 'ec.case3.track2.title': '💻 归因校验逻辑过程',
-                'ec.case3.track2.s1': '1. 查 Tag：今天是新用户 (Days=0) -> 满足 New User 条件',
-                'ec.case3.track2.s2': '2. 查 下载：底层 MMS Kafka 记录是通过 Referral 带来的',
-                'ec.case3.track2.s3': '3. 应用 OR 逻辑：满足 `New User` + `首次下载来自 Referral`。激活来源不再重要。',
-                'ec.case3.result': '✅ 最终认定为：新用户归因成功',
+                'ec.case3.track2.s1': '1. UPP 校验：今天是新用户 (Days=0) → 满足 New User 条件',
+                'ec.case3.track2.s2': '2. 路径①下载：MMP 记录显示通过 Referral 下载 → ✅ 通过',
+                'ec.case3.track2.s3': '3. 路径②激活：首次打开 App 是点桌面图标 → ❌ 未通过',
+                'ec.case3.track2.s4': '4. 路径③注册：注册发生在 Deeplink 进入之前 → ❌ 未通过',
+                'ec.case3.track2.s5': '5. 应用 OR 逻辑：New User + 路径①下载通过，其余路径不影响结果',
+                'ec.case3.result': '✅ 最终认定为：新用户归因成功（奖励写入 DB，用户可随时领取）',
+
+                'rf.title': '归因成功后的奖励发放流程',
+                'rf.desc': '归因成功后，系统将结果持久化存储。用户无需在当天进入游戏，后续任意时间首次进入游戏时仍可按归因身份领取奖励。',
+                'rf.step1.title': '归因成功',
+                'rf.step1.desc': '用户完成注册，归因系统返回结果',
+                'rf.step2.title': '写入数据库',
+                'rf.step2.desc': '归因记录入库，状态设为 Pending',
+                'rf.step3.title': '用户进入游戏',
+                'rf.step3.desc': '可以是当天，也可以是数天后',
+                'rf.step4.title': '查询归因记录',
+                'rf.step4.desc': '检查是否有 Pending 状态的记录',
+                'rf.step5.title': '发放奖励',
+                'rf.step5.desc': '按归因身份发奖，状态更新为 Rewarded',
+                'rf.callout': '<strong>关键规则：</strong>奖励发放与归因日期解耦。用户首次进入游戏时自动触发奖励发放。一旦奖励被领取（状态变为 Rewarded），该归因关系即失效，<strong>不可再次触发</strong>。',
+                'rf.schema.title': '归因记录表结构',
+                'rf.schema.field': '字段',
+                'rf.schema.descheader': '说明',
+                'rf.schema.uid.desc': '被邀请用户的唯一标识',
+                'rf.schema.type.desc': '归因身份类型：New (新用户) / Reactivated (唤醒用户)',
+                'rf.schema.referrer.desc': '邀请人的唯一标识',
+                'rf.schema.status.desc': 'Pending (待发放) → Rewarded (已发放)',
 
                 'dash.title': '运营监控看板 (模拟数据)',
                 'dash.desc': '基于上述归因逻辑，下方图表模拟展示了成功归因的数据分布情况。这有助于业务方理解哪些链路贡献了最多的邀请量。',
                 'dash.chart1.title': '归因成功用户身份构成',
                 'dash.chart1.note': '显示 New User 与 RA User 在总成功归因中的比例。',
-                'dash.chart2.title': '有效归因触发动作分布 (OR逻辑)',
-                'dash.chart2.note': '说明多少占比是依靠"下载"溯源成功，多少是依靠"激活"溯源成功。',
+                'dash.chart2.title': '有效归因触发路径分布 (三路 OR)',
+                'dash.chart2.note': '展示各归因路径的贡献占比：下载 (MMP)、激活 (utm)、注册 (Deeplink)、多路径。',
 
                 'chart.identity.labels': ['New Users (新用户)', 'RA Users (唤醒用户)'],
-                'chart.action.labels': ['下载溯源成功 (MMS)', '激活溯源成功 (utm)', '两者皆满足'],
+                'chart.action.labels': ['下载归因 (MMP)', '激活归因 (utm)', '注册归因 (Deeplink)', '多路径满足'],
 
                 'footer.text': 'Referral Attribution Interactive Documentation © 2026'
             },
@@ -477,54 +643,66 @@
                 'nav.simulator': 'Simulator',
                 'nav.datasource': 'Data Sources',
                 'nav.edgecases': 'Edge Cases',
+                'nav.rewardflow': 'Reward Flow',
                 'nav.dashboard': 'Dashboard',
 
                 'intro.title': 'Decoding Referral Attribution',
-                'intro.desc': 'This dashboard breaks down complex Referral attribution logic into interactive modules. The core logic revolves around <strong>User Identity Verification</strong> and <strong>Action Tracing (Download/Activation)</strong>. Here you can freely combine conditions to test attribution outcomes, explore underlying data verification mechanisms, and dive deep into edge case rules.',
+                'intro.desc': 'This dashboard breaks down complex Referral attribution logic into interactive modules. The core logic revolves around <strong>User Identity Verification</strong> and <strong>Action Tracing (Download / Activation / Registration)</strong>, using a 3-path OR logic. After successful attribution, rewards are <strong>persisted</strong> so users can claim them on their first game entry at any time.',
 
                 'sim.title': 'Core Attribution Simulator',
-                'sim.desc': 'Use the control panel below to simulate user behavior within <b>the same day</b>. The system uses <strong>OR logic</strong>: as long as either download attribution or activation attribution is satisfied, it counts as a success. Click options to see results.',
-                'sim.label1': '1. User Identity on Entry Day (When entering landing page)',
+                'sim.desc': 'Simulate user behavior within <b>the same day</b>. The system uses <strong>3-path OR logic</strong>: Download attribution, Activation attribution, or Registration attribution — as long as any one is satisfied, attribution succeeds. Select each condition to see the result.',
+                'sim.label1': '1. User Identity on Entry Day (UPP Verification)',
                 'sim.btn.new.desc': 'Registered today',
                 'sim.btn.ra.desc': 'Reactivated today',
                 'sim.btn.other.desc': 'Does not meet criteria',
-                'sim.label2': '2. Source of First App Download Today',
-                'sim.btn.dl.yes': '🔗 Via Referral Link',
+                'sim.label2': '2. App Download Source (MMP Attribution)',
+                'sim.btn.dl.yes': '🔗 Downloaded via Referral Link',
                 'sim.btn.dl.no': '📱 Organic / Other Channels',
-                'sim.label3': '3. Source of First App Activation Today',
-                'sim.btn.act.yes': '🔗 Via Referral Link',
+                'sim.label3': '3. First App Activation Source (utm Tracing)',
+                'sim.btn.act.yes': '🔗 Opened via Referral Link',
                 'sim.btn.act.no': '👆 Direct Icon Tap / Other',
+                'sim.label4': '4. Account Registration Source (Deeplink Timing)',
+                'sim.btn.reg.yes': '🔗 Registered via Referral Deeplink',
+                'sim.btn.reg.no': '📝 Organic Registration (opened App directly)',
 
                 'sim.result.waiting.title': 'Waiting for input...',
                 'sim.result.waiting.desc': 'Please select all conditions on the left to see the final attribution result.',
                 'sim.result.fail.other.title': 'Attribution Failed (Other User)',
-                'sim.result.fail.other.desc': 'The user does not meet the New User or Reactivated User criteria for today, so attribution fails regardless of download or activation source.',
-                'sim.result.fail.action.title': '🚫 Attribution Failed (Actions Not Met)',
-                'sim.result.fail.action.desc': 'Although the user identity qualifies, neither the first download nor the first activation today traced back to a Referral link.',
+                'sim.result.fail.other.desc': 'The user does not meet the New User or Reactivated User criteria (UPP verification failed), so attribution fails regardless of download, activation, or registration source.',
+                'sim.result.fail.action.title': '🚫 Attribution Failed (No Path Satisfied)',
+                'sim.result.fail.action.desc': 'Although the user identity qualifies, none of the three paths (download, activation, registration) traced back to a Referral link.',
                 'sim.result.success.role.new': 'New User',
                 'sim.result.success.role.ra': 'Reactivated User (RA)',
                 'sim.result.success.prefix': '✅ Successfully Attributed as ',
-                'sim.result.success.both': 'Perfect path! User meets same-day identity criteria, and both download and activation were successfully traced to Referral.',
-                'sim.result.success.dl': 'Attribution successful! User meets same-day identity criteria. Although activation was not via link, MMS records show the first download today came from Referral (OR logic applied).',
-                'sim.result.success.act': 'Attribution successful! User meets same-day identity criteria. Although download was organic, Traffic Kafka records show the first app open today was via Referral link (OR logic applied).',
+                'sim.result.success.all': 'Perfect path! User meets same-day identity criteria, and all three paths (download, activation, registration) were verified via Referral.',
+                'sim.result.success.dl': 'Attribution successful! MMP records confirm the download was driven by a Referral link (OR logic applied).',
+                'sim.result.success.act': 'Attribution successful! UTM records confirm the first activation was via a Referral link (OR logic applied).',
+                'sim.result.success.reg': 'Attribution successful! Deeplink timing verification confirms the registration was triggered by a Referral link (OR logic applied).',
+                'sim.result.success.multi': 'Attribution successful! Multiple attribution paths verified via Referral (OR logic applied).',
 
-                'ds.title': 'Data Tracing: How Does the System Know?',
-                'ds.desc': 'To accurately determine user behavior, the system relies on different data channels and tags for cross-validation. Hover over or click the cards below to see the details.',
-                'ds.card1.title': '1. First Download Detection',
-                'ds.card1.item1': 'Sharing links carry <strong>Affiliate MMS</strong> tracking parameters.',
-                'ds.card1.item2': 'Attribution results are fetched from <strong>MMS Kafka cluster</strong>. If present, it confirms the app download was driven by referral.',
-                'ds.card2.title': '2. First Activation Detection',
-                'ds.card2.item1': 'Sharing links carry <strong>utm</strong> tracking parameters.',
-                'ds.card2.item2': 'App open records are fetched from <strong>Traffic table Kafka</strong>. If the first open is from a referral link, activation attribution succeeds.',
-                'ds.card3.title': '3. User Identity Check',
-                'ds.card3.item1': '<strong>New User:</strong> Retrieved from Tag service, condition: <code>Days since shopee registration = 0 (tag id 23)</code>.',
-                'ds.card3.item2': '<strong>RA User:</strong> Determined by specific reactivation rule tags (pending business confirmation).',
+                'ds.title': 'Data Tracing: 3-Path Attribution Implementation',
+                'ds.desc': 'The system uses three independent data channels to determine if user behavior was driven by Referral. Each channel independently verifies, then UPP confirms user identity.',
+                'ds.card1.title': 'Path 1: Download Attribution (MMP)',
+                'ds.card1.item1': 'Sharing links carry <strong>MMP (Mobile Measurement Partner)</strong> tracking parameters.',
+                'ds.card1.item2': 'After downloading and registering, <strong>MMP reports and associates userid</strong>.',
+                'ds.card1.item3': 'Games queries MMP attribution data via userid, then <strong>UPP verifies</strong> the user is a same-day New/RA user.',
+                'ds.card2.title': 'Path 2: Activation Attribution (utm)',
+                'ds.card2.item1': 'Sharing links carry <strong>utm</strong> parameters with utm reporting.',
+                'ds.card2.item2': 'Games monitors <strong>signup messages</strong>, maps userid to deviceid, checks earliest utm source for that deviceid today.',
+                'ds.card2.item3': 'If source is Referral, <strong>UPP verifies</strong> same-day New/RA user status for successful attribution.',
+                'ds.card3.title': 'Path 3: Registration Attribution (Deeplink)',
+                'ds.card3.item1': 'User opens App via <strong>Deeplink</strong>, enters game, and the login/registration panel is triggered.',
+                'ds.card3.item2': 'After registration, the game compares <strong>earliest registration time today</strong> with the game page entry time.',
+                'ds.card3.item3': 'If registration is later than page entry (triggered by Deeplink), <strong>UPP verifies</strong> identity for successful attribution.',
+                'ds.card4.title': 'Identity Verification (UPP)',
+                'ds.card4.item1': '<strong>New User:</strong> Retrieved from Tag service, condition: <code>Days since Shopee registration = 0 (tag id 23)</code>.',
+                'ds.card4.item2': '<strong>RA User:</strong> Determined by specific reactivation rule tags (pending business confirmation).',
 
                 'ec.title': 'Edge Cases Deep Dive',
                 'ec.desc': 'In real-world scenarios, user behavior paths are rarely straightforward. Click the tabs below to explore typical edge case rules and timelines.',
                 'ec.tab1': 'Case 1: Attribution Window Expiry (Cross-day)',
                 'ec.tab2': 'Case 2: "Last Click Wins"',
-                'ec.tab3': 'Case 3: Indirect Path (Same-day Multi-action)',
+                'ec.tab3': 'Case 3: Indirect Path (3-Path OR Verification)',
 
                 'ec.case1.title': 'Attribution Window Expiry (Cross-day Scenario)',
                 'ec.case1.rule': '<strong>Core Rule:</strong> Identity determination is strictly based on calendar day. Tags expire after the day changes.',
@@ -533,7 +711,7 @@
                 'ec.case1.step2.title': 'Today',
                 'ec.case1.step2.desc': 'User opens the campaign landing page via the App for the first time.',
                 'ec.case1.result.title': 'Result: Failed',
-                'ec.case1.result.desc': 'Because the landing page visit happened "today" while registration occurred "yesterday", the "same-day" new user condition is not met.',
+                'ec.case1.result.desc': 'The landing page visit happened "today" while registration occurred "yesterday", so UPP verification fails the "same-day" new user condition.',
 
                 'ec.case2.title': '"Last Click Wins" Principle',
                 'ec.case2.rule': '<strong>Core Rule:</strong> If a user interacts with multiple referrer links, the reward goes to the owner of the link that triggered the final landing page visit.',
@@ -544,28 +722,51 @@
                 'ec.case2.result.title': 'System Verdict: Last Click Wins',
                 'ec.case2.result.desc': 'The system identifies the user as new and awards the referral reward to <strong>Referrer B</strong>, as their link triggered the final attribution check.',
 
-                'ec.case3.title': 'Indirect Path (Same-day Self-interruption Recovery)',
-                'ec.case3.rule': '<strong>Core Rule:</strong> As long as key milestones (identity, download tracing) occur within <strong>the same day</strong>, attribution succeeds even if intermediate steps are broken.',
+                'ec.case3.title': 'Indirect Path (Same-day 3-Path OR Verification)',
+                'ec.case3.rule': '<strong>Core Rule:</strong> Three attribution paths (Download / Activation / Registration) are verified independently. As long as any one passes + same-day UPP identity check, attribution succeeds.',
                 'ec.case3.track1.title': '👤 User\'s Actual Actions',
                 'ec.case3.track1.s1': 'Clicks Referral link to download App',
                 'ec.case3.track1.s2': 'Directly taps desktop icon to open & register (non-link activation)',
-                'ec.case3.track1.s3': 'Clicks Referral link again to enter landing page',
-                'ec.case3.divider': 'System Perspective Breakdown',
+                'ec.case3.track1.s3': 'Clicks Referral link again to enter game landing page',
+                'ec.case3.divider': 'System Perspective (3-Path Verification)',
                 'ec.case3.track2.title': '💻 Attribution Verification Process',
-                'ec.case3.track2.s1': '1. Check Tag: Today is new user (Days=0) -> New User condition met',
-                'ec.case3.track2.s2': '2. Check Download: MMS Kafka records show download via Referral',
-                'ec.case3.track2.s3': '3. Apply OR logic: `New User` + `First download from Referral` satisfied. Activation source no longer matters.',
-                'ec.case3.result': '✅ Final Verdict: New User Attribution Successful',
+                'ec.case3.track2.s1': '1. UPP Check: Today is new user (Days=0) → New User condition met',
+                'ec.case3.track2.s2': '2. Path 1 Download: MMP records show download via Referral → ✅ Pass',
+                'ec.case3.track2.s3': '3. Path 2 Activation: First app open was via icon tap → ❌ Fail',
+                'ec.case3.track2.s4': '4. Path 3 Registration: Registration happened before Deeplink entry → ❌ Fail',
+                'ec.case3.track2.s5': '5. Apply OR logic: New User + Path 1 (Download) passed. Other paths do not affect result.',
+                'ec.case3.result': '✅ Final Verdict: New User Attribution Successful (reward saved to DB, claimable anytime)',
+
+                'rf.title': 'Post-Attribution Reward Flow',
+                'rf.desc': 'After successful attribution, the system persists the result. Users do not need to enter the game on the same day — they can claim the reward on their first game entry at any future time.',
+                'rf.step1.title': 'Attribution Success',
+                'rf.step1.desc': 'User completes registration, attribution system returns result',
+                'rf.step2.title': 'Write to Database',
+                'rf.step2.desc': 'Attribution record saved with Pending status',
+                'rf.step3.title': 'User Enters Game',
+                'rf.step3.desc': 'Can be same day or days later',
+                'rf.step4.title': 'Query Attribution',
+                'rf.step4.desc': 'Check for Pending attribution records',
+                'rf.step5.title': 'Issue Reward',
+                'rf.step5.desc': 'Reward issued by type, status updated to Rewarded',
+                'rf.callout': '<strong>Key Rules:</strong> Reward issuance is decoupled from the attribution date. It is automatically triggered on the user\'s first game entry. Once the reward is claimed (status becomes Rewarded), the attribution record is finalized and <strong>cannot be triggered again</strong>.',
+                'rf.schema.title': 'Attribution Record Schema',
+                'rf.schema.field': 'Field',
+                'rf.schema.descheader': 'Description',
+                'rf.schema.uid.desc': 'Unique identifier of the invited user',
+                'rf.schema.type.desc': 'Attribution type: New (new user) / Reactivated (reactivated user)',
+                'rf.schema.referrer.desc': 'Unique identifier of the referrer',
+                'rf.schema.status.desc': 'Pending (awaiting reward) → Rewarded (reward issued)',
 
                 'dash.title': 'Operations Dashboard (Simulated Data)',
                 'dash.desc': 'Based on the attribution logic above, the charts below show simulated distribution data of successful attributions. This helps stakeholders understand which paths contribute the most referrals.',
                 'dash.chart1.title': 'Successful Attribution by User Type',
                 'dash.chart1.note': 'Shows the proportion of New Users vs RA Users in total successful attributions.',
-                'dash.chart2.title': 'Attribution Action Distribution (OR Logic)',
-                'dash.chart2.note': 'Shows the percentage breakdown by Download tracing vs Activation tracing success.',
+                'dash.chart2.title': 'Attribution Path Distribution (3-Path OR)',
+                'dash.chart2.note': 'Breakdown by attribution path: Download (MMP), Activation (utm), Registration (Deeplink), Multiple paths.',
 
                 'chart.identity.labels': ['New Users', 'RA Users'],
-                'chart.action.labels': ['Download Success (MMS)', 'Activation Success (utm)', 'Both Satisfied'],
+                'chart.action.labels': ['Download (MMP)', 'Activation (utm)', 'Registration (Deeplink)', 'Multiple Paths'],
 
                 'footer.text': 'Referral Attribution Interactive Documentation © 2026'
             }
@@ -610,12 +811,13 @@
         }
 
         // ===================== Simulator =====================
-        const simState = { role: null, download: null, activate: null };
+        const simState = { role: null, download: null, activate: null, register: null };
 
         function simSelect(category, value) {
             simState[category] = value;
 
-            const prefix = category === 'role' ? 'role' : (category === 'download' ? 'dl' : 'act');
+            const prefixMap = { role: 'role', download: 'dl', activate: 'act', register: 'reg' };
+            const prefix = prefixMap[category];
             document.querySelectorAll(`.${prefix}-btn`).forEach(btn => {
                 btn.classList.remove('bg-teal-50', 'border-teal-400', 'bg-red-50', 'border-red-400', 'ring-2', 'ring-offset-2');
                 if (btn.id.includes('other')) {
@@ -641,8 +843,8 @@
             const titleEl = document.getElementById('sim-title');
             const descEl = document.getElementById('sim-desc');
 
-            if (!simState.role || !simState.download || !simState.activate) {
-                resultBox.className = "bg-stone-100 rounded-xl p-6 flex flex-col justify-center items-center text-center border border-stone-200 relative z-10 min-h-[250px] transition-all-ease";
+            if (!simState.role || !simState.download || !simState.activate || !simState.register) {
+                resultBox.className = "bg-stone-100 rounded-xl p-6 flex flex-col justify-center items-center text-center border border-stone-200 relative z-10 min-h-[280px] transition-all-ease";
                 iconEl.innerText = "⏳";
                 titleEl.innerText = t('sim.result.waiting.title');
                 titleEl.className = "text-xl font-bold text-stone-800 mb-2";
@@ -660,17 +862,24 @@
                 titleText = t('sim.result.fail.other.title');
                 descText = t('sim.result.fail.other.desc');
             } else {
-                if (simState.download === 'yes' || simState.activate === 'yes') {
+                const dlOk = simState.download === 'yes';
+                const actOk = simState.activate === 'yes';
+                const regOk = simState.register === 'yes';
+                const pathCount = (dlOk ? 1 : 0) + (actOk ? 1 : 0) + (regOk ? 1 : 0);
+
+                if (pathCount > 0) {
                     isSuccess = true;
                     const roleName = simState.role === 'new' ? t('sim.result.success.role.new') : t('sim.result.success.role.ra');
                     titleText = t('sim.result.success.prefix') + roleName;
-                    
-                    if (simState.download === 'yes' && simState.activate === 'yes') {
-                        descText = t('sim.result.success.both');
-                    } else if (simState.download === 'yes') {
-                        descText = t('sim.result.success.dl');
+
+                    if (pathCount === 3) {
+                        descText = t('sim.result.success.all');
+                    } else if (pathCount === 1) {
+                        if (dlOk) descText = t('sim.result.success.dl');
+                        else if (actOk) descText = t('sim.result.success.act');
+                        else descText = t('sim.result.success.reg');
                     } else {
-                        descText = t('sim.result.success.act');
+                        descText = t('sim.result.success.multi');
                     }
                 } else {
                     isSuccess = false;
@@ -680,14 +889,14 @@
             }
 
             if (isSuccess) {
-                resultBox.className = "bg-green-50 rounded-xl p-6 flex flex-col justify-center items-center text-center border-2 border-green-400 relative z-10 min-h-[250px] transition-all-ease shadow-lg shadow-green-100";
+                resultBox.className = "bg-green-50 rounded-xl p-6 flex flex-col justify-center items-center text-center border-2 border-green-400 relative z-10 min-h-[280px] transition-all-ease shadow-lg shadow-green-100";
                 iconEl.innerText = "🎉";
                 titleEl.innerText = titleText;
                 titleEl.className = "text-2xl font-bold text-green-800 mb-2";
                 descEl.innerText = descText;
                 descEl.className = "text-base text-green-700 font-medium";
             } else {
-                resultBox.className = "bg-red-50 rounded-xl p-6 flex flex-col justify-center items-center text-center border-2 border-red-300 relative z-10 min-h-[250px] transition-all-ease";
+                resultBox.className = "bg-red-50 rounded-xl p-6 flex flex-col justify-center items-center text-center border-2 border-red-300 relative z-10 min-h-[280px] transition-all-ease";
                 iconEl.innerText = "✖️";
                 titleEl.innerText = titleText;
                 titleEl.className = "text-xl font-bold text-red-800 mb-2";
@@ -709,7 +918,7 @@
 
             document.getElementById(`content-${caseId}`).classList.remove('hidden');
             document.getElementById(`content-${caseId}`).classList.add('block');
-            
+
             const activeTab = document.getElementById(`tab-${caseId}`);
             activeTab.classList.remove('border-transparent', 'text-stone-600');
             activeTab.classList.add('border-teal-500', 'bg-white', 'font-bold', 'text-stone-800');
@@ -758,8 +967,8 @@
                 data: {
                     labels: t('chart.action.labels'),
                     datasets: [{
-                        data: [50, 30, 20],
-                        backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981'],
+                        data: [35, 25, 20, 20],
+                        backgroundColor: ['#3b82f6', '#8b5cf6', '#14b8a6', '#10b981'],
                         borderWidth: 0,
                         hoverOffset: 4
                     }]
