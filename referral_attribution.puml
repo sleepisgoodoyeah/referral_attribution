@@ -1,0 +1,440 @@
+@startuml referral_attribution_flow
+'==============================================================
+' Referral Attribution Complete Logic
+' Referral 归因逻辑全流程
+'==============================================================
+
+title **Referral 归因逻辑全流程**\nReferral Attribution Complete Flow
+
+skinparam backgroundColor #FEFEFE
+skinparam ActivityBackgroundColor #F8F8F8
+skinparam ActivityBorderColor #78716C
+skinparam ActivityDiamondBackgroundColor #FFF
+skinparam ActivityDiamondBorderColor #78716C
+skinparam PartitionBackgroundColor #FAFAF9
+skinparam PartitionBorderColor #A8A29E
+skinparam NoteBackgroundColor #FFFDE7
+skinparam NoteBorderColor #F59E0B
+skinparam ArrowColor #57534E
+
+|#F0FDFA|User 用户|
+|#EFF6FF|Frontend 前端|
+|#FDF4FF|Games Backend 游戏后端|
+|#FFF7ED|External Systems 外部系统|
+
+|User 用户|
+start
+:用户点击 Referral 分享链接
+User clicks Referral sharing link;
+
+:用户执行一系列动作（当日内）
+User performs actions (**same day**):
+• 下载 App / Download App
+• 打开 App / Open App
+• 注册账号 / Register account;
+
+|Frontend 前端|
+:用户进入游戏落地页，触发归因校验
+User enters game landing page,
+triggering attribution check;
+
+|Games Backend 游戏后端|
+partition "**三路 OR 归因校验 / 3-Path OR Attribution Check**" {
+
+    partition "路径 ① 下载归因 / Path 1: Download Attribution (MMP)" #EFF6FF {
+        |External Systems 外部系统|
+        :查询 MMP 归因数据（通过 userid）
+        Query MMP attribution data via userid;
+        note right
+            **实现细节 / Implementation**
+            ① 分享链接携带 MMP 追踪参数
+            ② 用户通过链接下载 App，MMP 上报
+            ③ 用户注册后，MMP 关联 userid
+            ④ Games 通过 userid 查询 MMP Kafka
+        end note
+
+        |Games Backend 游戏后端|
+        if (MMP 归因记录存在？\nMMP record exists?) then (Yes)
+            :download_result = **PASS** ✅;
+        else (No)
+            :download_result = **FAIL** ❌;
+        endif
+    }
+
+    partition "路径 ② 激活归因 / Path 2: Activation Attribution (utm)" #F5F3FF {
+        |External Systems 外部系统|
+        :监听 signup 消息，获取 deviceid
+        Monitor signup, get deviceid via userid;
+
+        :查询该 deviceid 当日最早 utm 来源
+        Query earliest utm source today
+        for this deviceid (Traffic Kafka);
+        note right
+            **实现细节 / Implementation**
+            ① 分享链接携带 utm 参数
+            ② 链接打开时进行 utm 上报
+            ③ Games 监听 signup 消息
+            ④ 通过 userid → deviceid 关联
+            ⑤ 查询 deviceid 当日最早 utm
+        end note
+
+        |Games Backend 游戏后端|
+        if (最早 utm 来源 = Referral？\nEarliest utm = Referral?) then (Yes)
+            :activate_result = **PASS** ✅;
+        else (No)
+            :activate_result = **FAIL** ❌;
+        endif
+    }
+
+    partition "路径 ③ 注册归因 / Path 3: Registration Attribution (Deeplink)" #F0FDFA {
+        |Games Backend 游戏后端|
+        :记录用户通过 Deeplink 进入游戏页面的时间
+        Record game page entry time via Deeplink;
+
+        :查询用户当日最早登录/注册时间
+        Query user's earliest login/registration
+        time today;
+        note right
+            **实现细节 / Implementation**
+            ① 用户通过 Deeplink 唤起 App
+            ② 游戏弹出登录/注册面板
+            ③ 用户完成注册后返回游戏
+            ④ 比较注册时间 vs 页面进入时间
+        end note
+
+        if (注册时间 > 页面进入时间？\nRegistration time > entry time?) then (Yes)
+            :register_result = **PASS** ✅;
+        else (No)
+            :register_result = **FAIL** ❌;
+        endif
+    }
+
+    '--- OR Logic Decision ---
+    if (**OR 逻辑：任一路径通过？**\n**Any path PASS? (OR logic)**\ndownload OR activate OR register) then (<color:green><b>Yes - 至少一路通过</b></color>)
+    else (<color:red><b>No - 全部自然量 All organic</b></color>)
+        #FFEBEE:三路均未溯源到 Referral
+        All 3 paths failed to trace to Referral;
+        :视为 **Existing User**
+        Treated as **Existing User**
+        不发放邀请奖励 / No referral reward;
+        |User 用户|
+        #FFCDD2:用户以 Existing User 身份参与活动
+        User participates as Existing User;
+        stop
+    endif
+}
+
+partition "**身份校验 / Identity Verification (UPP)**" {
+    |External Systems 外部系统|
+    :通过 UPP 查询用户 Tag
+    Query user tags via UPP;
+    note right
+        **New User 判定**
+        Tag ID: 23
+        Days since Shopee registration = 0
+        ----
+        **RA User 判定**
+        具体唤醒规则标签（待确认）
+    end note
+
+    |Games Backend 游戏后端|
+    if (Days since registration = 0?\n注册天数 = 0？(Tag ID 23)) then (Yes)
+        :user_type = **New User** 新用户;
+    elseif (RA 规则匹配？\nRA rules matched?) then (Yes)
+        :user_type = **Reactivated User** 唤醒用户;
+    else (<color:red>Neither 均不满足</color>)
+        #FFEBEE:UPP 校验未通过：非当日新用户/RA 用户
+        UPP check failed: not same-day New/RA;
+        :视为 **Existing User**
+        Treated as **Existing User**;
+        |User 用户|
+        #FFCDD2:用户以 Existing User 身份参与活动
+        User participates as Existing User;
+        stop
+    endif
+}
+
+|Games Backend 游戏后端|
+#C8E6C9:**归因成功 / Attribution Success** ✅
+用户身份：New User 或 RA User
+归因路径：至少一条 Referral 路径验证通过;
+
+partition "**奖励持久化与发放 / Reward Persistence & Issuance**" #FFF8E1 {
+
+    :将归因结果写入数据库
+    Write attribution record to DB;
+    note right
+        **归因记录 / Attribution Record**
+        ════════════════════════════
+        | **Field**            | **Value**            |
+        | User UID          | 被邀请用户标识      |
+        | Attribution Type  | New / Reactivated    |
+        | Referrer UID      | 邀请人标识           |
+        | Attribution Status| **Pending**          |
+    end note
+
+    |User 用户|
+    :用户进入游戏（当天或之后任意时间）
+    User enters game
+    (same day **or any future day**);
+
+    |Games Backend 游戏后端|
+    :查询该用户是否有 Pending 归因记录
+    Query for Pending attribution records;
+
+    if (存在 Pending 记录？\nPending record exists?) then (Yes)
+        :按归因身份类型发放对应奖励
+        Issue reward based on attribution type
+        (New User reward / RA User reward);
+
+        :更新状态 Pending → **Rewarded**
+        Update status to **Rewarded**;
+
+        |User 用户|
+        #C8E6C9:🎉 用户领取 Referral 奖励
+        User receives Referral reward;
+        note right
+            **关键规则 / Key Rules**
+            ① 奖励与归因日期解耦
+               Reward decoupled from attribution day
+            ② 仅首次进入游戏时触发
+               Only triggered on first game entry
+            ③ 一旦领取，归因关系失效
+               Once claimed, cannot re-trigger
+        end note
+    else (No)
+        :无待发放记录
+        No pending record;
+    endif
+}
+
+stop
+
+@enduml
+
+
+@startuml edge_case_crossday
+'==============================================================
+' Edge Case 1: Cross-day Attribution Failure
+' 边界场景 1：跨日归因失效
+'==============================================================
+
+title **边界场景 1：跨日归因失效**\nEdge Case 1: Cross-day Attribution Window Expiry
+
+skinparam backgroundColor #FEFEFE
+skinparam SequenceGroupBackgroundColor #FAFAF9
+skinparam NoteBackgroundColor #FFFDE7
+skinparam NoteBorderColor #F59E0B
+
+actor "User\n用户" as U
+participant "Referral Link\n分享链接" as RL
+participant "App" as APP
+participant "Games Backend\n游戏后端" as GB
+participant "UPP" as UPP
+
+== **昨天 / Yesterday** ==
+
+U -> RL : 点击 Referral 链接\nClick referral link
+RL -> APP : 跳转至应用商店\nRedirect to app store
+U -> APP : 下载并注册\nDownload & register
+note over APP : 用户成为 **新用户**\nUser becomes **New User**\n(Days since registration = 0)
+
+== **今天 / Today** ==
+
+U -> APP : 打开 App
+APP -> GB : 进入游戏落地页\nEnter game landing page
+GB -> UPP : 查询用户 Tag\nQuery user tags
+
+UPP --> GB : Days since registration = **1** ❌\n(不再是 0 / No longer 0)
+
+note over GB #FFEBEE
+    **归因失败 / Attribution Failed**
+    注册发生在"昨天"，今天进入时
+    Tag 已更新为 Days = 1
+    不满足当日新用户条件
+    ----
+    Registration was "yesterday",
+    tag now shows Days = 1,
+    same-day New User condition NOT met
+end note
+
+GB --> U : 视为 Existing User\nTreated as Existing User
+
+@enduml
+
+
+@startuml edge_case_last_click
+'==============================================================
+' Edge Case 2: Last Click Wins
+' 边界场景 2：最后点击有效（截胡）
+'==============================================================
+
+title **边界场景 2："最后点击有效"原则**\nEdge Case 2: Last Click Wins
+
+skinparam backgroundColor #FEFEFE
+skinparam SequenceGroupBackgroundColor #FAFAF9
+skinparam NoteBackgroundColor #FFFDE7
+skinparam NoteBorderColor #F59E0B
+
+actor "User\n用户" as U
+participant "Referrer A\n邀请人 A" as RA
+participant "Referrer B\n邀请人 B" as RB
+participant "App" as APP
+participant "Games Backend\n游戏后端" as GB
+
+== **同一天内 / Same Day** ==
+
+U -> RA : ① 点击 A 的分享链接\nClick A's referral link
+RA -> APP : 跳转下载\nRedirect to download
+U -> APP : ② 下载 App\nDownload App
+
+... 一段时间后 / Some time later ...
+
+U -> RB : ③ 点击 B 的分享链接\nClick B's referral link
+RB -> APP : 唤起 App\nOpen App via deeplink
+U -> APP : ④ 进入活动落地页\nEnter campaign landing page
+APP -> GB : 触发归因校验\nTrigger attribution check
+
+note over GB #E8F5E9
+    **归因结果 / Attribution Result**
+    用户认定为新用户 ✅
+    User identified as New User ✅
+    ----
+    奖励归属：**邀请人 B** 🏆
+    Reward goes to: **Referrer B**
+    ----
+    原因：B 的链接触发了最终归因校验
+    Reason: B's link triggered the
+    final attribution check
+end note
+
+GB --> RB : 发放邀请奖励\nIssue referral reward 🏆
+GB --> RA : 无奖励\nNo reward ✗
+
+@enduml
+
+
+@startuml edge_case_indirect
+'==============================================================
+' Edge Case 3: Indirect Path (3-Path OR)
+' 边界场景 3：迂回路径（三路 OR 验证）
+'==============================================================
+
+title **边界场景 3：迂回路径（三路 OR 验证）**\nEdge Case 3: Indirect Path with 3-Path OR
+
+skinparam backgroundColor #FEFEFE
+skinparam SequenceGroupBackgroundColor #FAFAF9
+skinparam NoteBackgroundColor #FFFDE7
+skinparam NoteBorderColor #F59E0B
+
+actor "User\n用户" as U
+participant "Referral Link\n分享链接" as RL
+participant "App" as APP
+participant "Games Backend\n游戏后端" as GB
+participant "MMP" as MMP
+participant "Traffic Kafka" as TK
+participant "UPP" as UPP
+
+== **用户动作 / User Actions (同一天 Same Day)** ==
+
+U -> RL : ① 点击 Referral 链接\nClick Referral link
+RL -> APP : 跳转下载\nRedirect to download
+U -> APP : 下载 App\nDownload App
+MMP -> MMP : MMP 记录下载来源\nMMP records download source
+
+U -> APP : ② 直接点桌面图标打开 App\nDirectly tap icon to open App
+U -> APP : 注册账号\nRegister account
+note over APP : 激活非链接触发\nActivation NOT via link
+
+U -> RL : ③ 再次点击 Referral 链接\nClick Referral link again
+RL -> APP : 唤起进入游戏\nDeeplink into game
+
+== **系统校验 / System Verification** ==
+
+GB -> UPP : 1. UPP 身份校验\nIdentity check
+UPP --> GB : Days = 0 → **New User** ✅
+
+GB -> MMP : 2. 路径① 下载校验\nPath 1: Download check
+MMP --> GB : MMP 记录存在 → **PASS** ✅
+
+GB -> TK : 3. 路径② 激活校验\nPath 2: Activation check
+TK --> GB : 首次打开非链接 → **FAIL** ❌
+
+GB -> GB : 4. 路径③ 注册校验\nPath 3: Registration check
+note over GB : 注册发生在 Deeplink 进入之前\nRegistration before Deeplink entry → **FAIL** ❌
+
+note over GB #E8F5E9
+    **应用 OR 逻辑 / Apply OR Logic**
+    ════════════════════════════
+    路径① 下载：✅ PASS
+    路径② 激活：❌ FAIL
+    路径③ 注册：❌ FAIL
+    ----
+    **至少一路通过 → 归因成功** ✅
+    At least one path passed → Success
+    ----
+    New User + Download via Referral
+    其余路径不影响结果
+end note
+
+GB -> GB : 写入归因记录 (Pending)\nWrite attribution record
+
+@enduml
+
+
+@startuml reward_state_machine
+'==============================================================
+' Reward Status Lifecycle
+' 奖励状态生命周期
+'==============================================================
+
+title **归因记录状态流转**\nAttribution Record Status Lifecycle
+
+skinparam backgroundColor #FEFEFE
+skinparam StateBackgroundColor #F8F8F8
+skinparam StateBorderColor #78716C
+skinparam NoteBackgroundColor #FFFDE7
+skinparam NoteBorderColor #F59E0B
+
+[*] --> AttributionCheck : 用户进入落地页\nUser enters landing page
+
+state "归因校验中\nAttribution Check" as AttributionCheck {
+    state "三路 OR 校验\n3-Path OR Check" as PathCheck
+    state "UPP 身份校验\nUPP Identity Check" as UPPCheck
+    PathCheck --> UPPCheck : 至少一路通过\nAt least one path passed
+    PathCheck --> [*] : 全部未通过 → Existing User\nAll failed → Existing User
+    UPPCheck --> [*] : 非 New/RA → Existing User\nNot New/RA → Existing User
+}
+
+AttributionCheck --> Pending : 归因成功\nAttribution Success
+
+state "Pending\n待发放" as Pending #FFF9C4 {
+    Pending : User UID = xxx
+    Pending : Type = New / RA
+    Pending : Referrer UID = yyy
+    Pending : Status = **Pending**
+}
+note right of Pending
+    用户可在任意时间
+    首次进入游戏触发
+    ----
+    User can trigger on
+    first game entry
+    at **any future time**
+end note
+
+Pending --> Rewarded : 用户进入游戏，发放奖励\nUser enters game, reward issued
+
+state "Rewarded\n已发放" as Rewarded #C8E6C9 {
+    Rewarded : Status = **Rewarded**
+    Rewarded : 归因关系终结
+    Rewarded : Record finalized
+}
+note right of Rewarded
+    一旦发放，不可再次触发
+    Once issued, cannot re-trigger
+end note
+
+Rewarded --> [*]
+
+@enduml
